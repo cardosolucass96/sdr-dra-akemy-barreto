@@ -229,8 +229,9 @@ def test_whatsapp_style_prompt_defines_cohesive_and_natural_delivery() -> None:
     style_prompt = definitions[WHATSAPP_STYLE_PROMPT_NAME].prompt
 
     assert isinstance(style_prompt, str)
-    assert "one coherent main job" in style_prompt
-    assert "natural transitions" in style_prompt
+    assert "Give each message one coherent main job" in style_prompt
+    assert "a blank line" in style_prompt
+    assert "single line breaks inside that message" in style_prompt
     assert "Avoid automatic confirmations" in style_prompt
     assert "feature dumps, and several questions in a row" in style_prompt
     assert "Do not ask a question after a refusal" in style_prompt

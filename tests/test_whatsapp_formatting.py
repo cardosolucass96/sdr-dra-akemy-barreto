@@ -11,6 +11,19 @@ def test_split_whatsapp_messages_returns_single_short_message() -> None:
     assert split_whatsapp_messages("  Oi! Como posso ajudar?  ") == ["Oi! Como posso ajudar?"]
 
 
+def test_split_whatsapp_messages_separates_short_paragraphs_into_messages() -> None:
+    answer = "A consulta inclui avaliação médica individualizada e bioimpedância."
+    follow_up = "O que você gostaria de avaliar?"
+
+    assert split_whatsapp_messages(f"{answer}\n\n{follow_up}") == [answer, follow_up]
+
+
+def test_split_whatsapp_messages_keeps_related_lines_together() -> None:
+    text = "A consulta custa R$ 1.250.\nO pagamento pode ser feito em até 3x sem juros."
+
+    assert split_whatsapp_messages(text) == [text]
+
+
 def test_split_whatsapp_messages_splits_long_paragraphs() -> None:
     first_paragraph = "Primeira parte com contexto suficiente. " * 8
     second_paragraph = "Segunda parte com proximos passos claros. " * 8
@@ -33,6 +46,28 @@ def test_split_whatsapp_messages_splits_long_single_paragraph_by_sentence() -> N
 
     assert len(messages) > 1
     assert all(len(message) <= WHATSAPP_MAX_MESSAGE_CHARS for message in messages)
+
+
+def test_split_whatsapp_messages_splits_long_sentence_by_words() -> None:
+    paragraph = " ".join(["palavra"] * 120)
+
+    messages = split_whatsapp_messages(paragraph)
+
+    assert len(messages) == 3
+    assert " ".join(messages) == paragraph
+    assert all(len(message) <= WHATSAPP_MAX_MESSAGE_CHARS for message in messages)
+
+
+def test_split_whatsapp_messages_splits_an_oversized_sentence_between_sentences() -> None:
+    oversized_sentence = " ".join(["palavra"] * 70) + "."
+    paragraph = f"Introdução curta. {oversized_sentence} Conclusão curta."
+
+    messages = split_whatsapp_messages(paragraph)
+
+    assert len(messages) == 4
+    assert messages[0] == "Introdução curta."
+    assert messages[-1] == "Conclusão curta."
+    assert " ".join(messages[1:-1]) == oversized_sentence
 
 
 def test_split_whatsapp_messages_preserves_list_blocks_when_possible() -> None:

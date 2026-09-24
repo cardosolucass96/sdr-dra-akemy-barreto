@@ -18,11 +18,11 @@ def split_whatsapp_messages(text: str) -> list[str]:
     if not normalized_text:
         return []
 
-    if len(normalized_text) <= WHATSAPP_SHORT_MESSAGE_LIMIT:
-        return [normalized_text]
-
     blocks = _split_paragraph_blocks(normalized_text)
-    messages = _pack_blocks(blocks)
+    if len(blocks) == 1 and len(blocks[0]) <= WHATSAPP_SHORT_MESSAGE_LIMIT:
+        return blocks
+
+    messages = [message for block in blocks for message in _split_oversized_block(block)]
     return _merge_to_message_limit(messages)
 
 
@@ -46,32 +46,8 @@ def _split_paragraph_blocks(text: str) -> list[str]:
     return [block.strip() for block in re.split(r"\n\s*\n", text) if block.strip()]
 
 
-def _pack_blocks(blocks: list[str]) -> list[str]:
-    messages: list[str] = []
-    current_message = ""
-
-    for block in blocks:
-        for part in _split_oversized_block(block):
-            if not current_message:
-                current_message = part
-                continue
-
-            candidate = f"{current_message}\n\n{part}"
-            if len(candidate) <= WHATSAPP_TARGET_MESSAGE_CHARS:
-                current_message = candidate
-                continue
-
-            messages.append(current_message.strip())
-            current_message = part
-
-    if current_message.strip():
-        messages.append(current_message.strip())
-
-    return [message for message in messages if message]
-
-
 def _split_oversized_block(block: str) -> list[str]:
-    if len(block) <= WHATSAPP_MAX_MESSAGE_CHARS:
+    if len(block) <= WHATSAPP_TARGET_MESSAGE_CHARS:
         return [block]
 
     sentence_parts = [
@@ -84,7 +60,7 @@ def _split_oversized_block(block: str) -> list[str]:
     current_message = ""
 
     for sentence in sentence_parts:
-        if len(sentence) > WHATSAPP_MAX_MESSAGE_CHARS:
+        if len(sentence) > WHATSAPP_TARGET_MESSAGE_CHARS:
             if current_message:
                 messages.append(current_message.strip())
                 current_message = ""
@@ -96,7 +72,7 @@ def _split_oversized_block(block: str) -> list[str]:
             continue
 
         candidate = f"{current_message} {sentence}"
-        if len(candidate) <= WHATSAPP_MAX_MESSAGE_CHARS:
+        if len(candidate) <= WHATSAPP_TARGET_MESSAGE_CHARS:
             current_message = candidate
             continue
 
@@ -113,6 +89,7 @@ def _split_by_words(text: str) -> list[str]:
     words = re.findall(r"\S+", text)
     messages: list[str] = []
     current_message = ""
+    chunk_limit = min(WHATSAPP_TARGET_MESSAGE_CHARS, WHATSAPP_MAX_MESSAGE_CHARS)
 
     for word in words:
         if not current_message:
@@ -120,7 +97,7 @@ def _split_by_words(text: str) -> list[str]:
             continue
 
         candidate = f"{current_message} {word}"
-        if len(candidate) <= WHATSAPP_MAX_MESSAGE_CHARS:
+        if len(candidate) <= chunk_limit:
             current_message = candidate
             continue
 

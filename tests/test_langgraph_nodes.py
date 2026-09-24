@@ -158,6 +158,7 @@ def test_respond_appends_ai_message(monkeypatch) -> None:
             )
             assert "O investimento informado é R$ 1.250" in payload["response_style"]
             assert "Informe o valor quando a pessoa perguntar" in payload["response_style"]
+            assert "separe-as em mensagens distintas" in payload["response_style"]
             assert "Guia de estilo WhatsApp:\nUse WhatsApp style." in payload["response_style"]
             assert config == expected_config
             return output_message

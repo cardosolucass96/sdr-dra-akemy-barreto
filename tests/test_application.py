@@ -1818,7 +1818,7 @@ def test_handle_pipefacil_message_received_falls_back_to_text_for_explicit_audio
 
     assert result.delivery_status == "sent"
     assert sent_texts == [
-        f"{pipefacil_application.GENERATED_AUDIO_DELIVERY_FALLBACK_PREFIX}\n\n{audio_text}"
+        f"{pipefacil_application.GENERATED_AUDIO_DELIVERY_FALLBACK_PREFIX}\n{audio_text}"
     ]
     failed_log = next(
         extra

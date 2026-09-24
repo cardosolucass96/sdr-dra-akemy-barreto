@@ -787,7 +787,7 @@ def _build_generated_audio_text_fallback(
             part.type == "audio" and part.media_id and part.media_id.startswith("generated-audio:")
         )
     ]
-    fallback_text = f"{GENERATED_AUDIO_DELIVERY_FALLBACK_PREFIX}\n\n{audio_text.strip()}"
+    fallback_text = f"{GENERATED_AUDIO_DELIVERY_FALLBACK_PREFIX}\n{audio_text.strip()}"
     fallback_parts = [
         ResponsePartResult(type="text", text=text)
         for text in split_whatsapp_messages(fallback_text)
