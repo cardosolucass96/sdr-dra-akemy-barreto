@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, replace
 from typing import Any
 
@@ -40,6 +40,7 @@ from app.integrations.pipefacil import (
     send_whatsapp_media_message,
     validate_message_received_content,
 )
+from app.integrations.pipefacil.liana_mapping import resolve_liana_stage_key
 from app.observability import observe_agent_run, using_langfuse_settings
 from app.outbound_media import get_outbound_media_asset
 
@@ -116,6 +117,8 @@ def handle_pipefacil_message_received(
     graph=None,
     settings: Settings,
     idempotency_store: MessageIdempotencyStore | None = None,
+    pipefacil_sync_enqueue: Callable[[dict[str, Any]], dict[str, Any]] | None = None,
+    pipefacil_sync_handler: Callable[[dict[str, Any]], dict[str, Any]] | None = None,
 ) -> ChatTurnResult:
     source_payloads = payload.messages_for_processing()
     latest_payload = source_payloads[-1]
@@ -191,6 +194,8 @@ def handle_pipefacil_message_received(
             trace_user_id=trace_user_id,
             log_user_id=log_user_id,
             log_context=log_context,
+            pipefacil_sync_enqueue=pipefacil_sync_enqueue,
+            pipefacil_sync_handler=pipefacil_sync_handler,
         )
     except Exception:
         for idempotency_key in claimed_idempotency_keys:
@@ -251,47 +256,30 @@ def _handle_pipefacil_message_received_once(
     trace_user_id: str,
     log_user_id: str,
     log_context: dict[str, object],
+    pipefacil_sync_enqueue: Callable[[dict[str, Any]], dict[str, Any]] | None,
+    pipefacil_sync_handler: Callable[[dict[str, Any]], dict[str, Any]] | None,
 ) -> ChatTurnResult:
     source_payloads = tuple(inbound_payloads or (payload,))
-    if len(source_payloads) == 1 and _is_thread_reset_command(payload):
-        return _handle_thread_reset_command(
-            payload,
-            graph=graph,
-            session_id=session_id,
-            log_context=log_context,
-            settings=settings,
-        )
-
-    lead_max_tokens = normalize_max_tokens(settings.pipefacil_max_tokens_per_lead)
-    if lead_max_tokens:
-        lead_token_usage = _build_pipefacil_lead_token_usage(
-            payload,
-            thread_id=session_id,
-            graph=graph,
-            settings=settings,
-            incoming_text="\n".join(
-                _message_received_token_text(source_payload) for source_payload in source_payloads
-            ),
-        )
-        if lead_token_usage.exceeded:
-            LOGGER.info(
-                "pipefacil.inbound.lead_token_limit_exceeded",
-                extra={
-                    **log_context,
-                    "pipeline_step": "pipefacil.inbound.lead_token_limit_exceeded",
-                    "lead_current_tokens": lead_token_usage.current_tokens,
-                    "lead_incoming_tokens": lead_token_usage.incoming_tokens,
-                    "lead_total_tokens": lead_token_usage.total_tokens,
-                    "lead_max_tokens": lead_token_usage.max_tokens,
-                },
-            )
-            return ChatTurnResult(
-                thread_id=session_id,
-                intent=None,
-                intent_reason="Pipefacil lead token budget exceeded.",
-                response_text="",
-                status=LEAD_TOKEN_LIMIT_EXCEEDED_STATUS,
-            )
+    reset_result = _resolve_thread_reset(
+        payload,
+        source_payloads=source_payloads,
+        graph=graph,
+        session_id=session_id,
+        log_context=log_context,
+        settings=settings,
+    )
+    if reset_result is not None:
+        return reset_result
+    token_limit_result = _resolve_lead_token_limit(
+        payload,
+        source_payloads=source_payloads,
+        graph=graph,
+        session_id=session_id,
+        log_context=log_context,
+        settings=settings,
+    )
+    if token_limit_result is not None:
+        return token_limit_result
 
     media_download_logged = False
 
@@ -426,6 +414,14 @@ def _handle_pipefacil_message_received_once(
                 metadata=trace_metadata,
                 graph=graph,
                 settings=settings,
+                pipefacil_deal_seq=(payload.data.deal.seq if payload.data.deal else None),
+                pipefacil_stage_key=(
+                    resolve_liana_stage_key(payload.data.deal.stage.id)
+                    if payload.data.deal and payload.data.deal.stage
+                    else None
+                ),
+                pipefacil_sync_enqueue=pipefacil_sync_enqueue,
+                pipefacil_sync_handler=pipefacil_sync_handler,
             )
             LOGGER.info(
                 "agent.run.completed",
@@ -462,7 +458,70 @@ def _handle_pipefacil_message_received_once(
                         "response_part_count": len(delivered_response.response_parts),
                     }
                 )
-            return delivered_response
+    return delivered_response
+
+
+def _resolve_thread_reset(
+    payload: MessageReceivedEventRequest,
+    *,
+    source_payloads: Sequence[MessageReceivedEventRequest],
+    graph,
+    session_id: str,
+    log_context: dict[str, object],
+    settings: Settings,
+) -> ChatTurnResult | None:
+    if len(source_payloads) != 1 or not _is_thread_reset_command(payload):
+        return None
+    return _handle_thread_reset_command(
+        payload,
+        graph=graph,
+        session_id=session_id,
+        log_context=log_context,
+        settings=settings,
+    )
+
+
+def _resolve_lead_token_limit(
+    payload: MessageReceivedEventRequest,
+    *,
+    source_payloads: Sequence[MessageReceivedEventRequest],
+    graph,
+    session_id: str,
+    log_context: dict[str, object],
+    settings: Settings,
+) -> ChatTurnResult | None:
+    max_tokens = normalize_max_tokens(settings.pipefacil_max_tokens_per_lead)
+    if not max_tokens:
+        return None
+    usage = _build_pipefacil_lead_token_usage(
+        payload,
+        thread_id=session_id,
+        graph=graph,
+        settings=settings,
+        incoming_text="\n".join(
+            _message_received_token_text(source_payload) for source_payload in source_payloads
+        ),
+    )
+    if not usage.exceeded:
+        return None
+    LOGGER.info(
+        "pipefacil.inbound.lead_token_limit_exceeded",
+        extra={
+            **log_context,
+            "pipeline_step": "pipefacil.inbound.lead_token_limit_exceeded",
+            "lead_current_tokens": usage.current_tokens,
+            "lead_incoming_tokens": usage.incoming_tokens,
+            "lead_total_tokens": usage.total_tokens,
+            "lead_max_tokens": usage.max_tokens,
+        },
+    )
+    return ChatTurnResult(
+        thread_id=session_id,
+        intent=None,
+        intent_reason="Pipefacil lead token budget exceeded.",
+        response_text="",
+        status=LEAD_TOKEN_LIMIT_EXCEEDED_STATUS,
+    )
 
 
 def _ignore_pipefacil_contact_without_lead(

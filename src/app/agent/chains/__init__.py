@@ -1,4 +1,5 @@
 from app.agent.chains.intent import build_classifier_chain
+from app.agent.chains.liana_progress import build_liana_progress_chain
 from app.agent.chains.llm import (
     effective_reasoning_effort,
     get_chat_model,
@@ -27,6 +28,7 @@ __all__ = [
     "OutboundMediaClassification",
     "build_chain",
     "build_classifier_chain",
+    "build_liana_progress_chain",
     "build_outbound_media_classifier_chain",
     "build_responder_chain",
     "get_chat_model",

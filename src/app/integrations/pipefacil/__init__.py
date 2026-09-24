@@ -12,6 +12,7 @@ from app.integrations.pipefacil.client import (
     fetch_pipefacil_conversation_history,
     send_public_text_message,
     send_whatsapp_media_message,
+    update_deal,
     update_deal_properties,
     update_deal_stage,
 )
@@ -81,6 +82,7 @@ __all__ = [
     "send_public_text_message",
     "send_whatsapp_media_message",
     "update_deal_properties",
+    "update_deal",
     "update_deal_stage",
     "validate_message_received_content",
     "normalize_conversation_history",

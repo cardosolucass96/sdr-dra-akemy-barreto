@@ -335,6 +335,101 @@ def update_deal_properties(
     )
 
 
+def update_deal(
+    *,
+    seq: int | None,
+    custom_fields: dict[str, Any],
+    stage_id: str | None = None,
+    settings: Settings | None = None,
+    client: httpx.Client | None = None,
+) -> PipefacilDealUpdateResult:
+    current_settings = settings or get_settings()
+    payload = _build_deal_patch_payload(
+        seq=seq,
+        custom_fields=custom_fields,
+        stage_id=stage_id,
+        settings=current_settings,
+    )
+    return _send_deal_patch(
+        seq=seq,
+        payload=payload,
+        settings=current_settings,
+        client=client,
+    )
+
+
+def _build_deal_patch_payload(
+    *,
+    seq: int | None,
+    custom_fields: dict[str, Any],
+    stage_id: str | None,
+    settings: Settings,
+) -> dict[str, Any]:
+    if not settings.pipefacil_api_key:
+        raise PipefacilDealUpdateError(
+            "PIPEFACIL_API_KEY is required to update Pipefacil deal details.",
+            error_code="pipefacil_api_key_missing",
+        )
+    if seq is None:
+        raise PipefacilDealUpdateError(
+            "Pipefacil deal seq is required to update deal details.",
+            error_code="pipefacil_deal_seq_missing",
+        )
+    normalized_stage_id = (stage_id or "").strip()
+    if not custom_fields and not normalized_stage_id:
+        raise PipefacilDealUpdateError(
+            "Pipefacil deal update cannot be empty.",
+            error_code="pipefacil_deal_properties_empty",
+        )
+    payload: dict[str, Any] = {}
+    if custom_fields:
+        payload["customFields"] = custom_fields
+    if normalized_stage_id:
+        payload["stageId"] = normalized_stage_id
+
+    return payload
+
+
+def _send_deal_patch(
+    *,
+    seq: int | None,
+    payload: dict[str, Any],
+    settings: Settings,
+    client: httpx.Client | None,
+) -> PipefacilDealUpdateResult:
+    owns_client = client is None
+    current_client = client or _build_client(settings)
+    try:
+        response = current_client.patch(
+            f"{PUBLIC_DEALS_PATH}/{seq}",
+            json=payload,
+            headers=_build_headers(settings),
+        )
+    except httpx.HTTPError as exc:
+        raise PipefacilDealUpdateError(
+            f"Pipefacil deal update request failed: {exc}",
+            error_code="pipefacil_transport_error",
+        ) from exc
+    finally:
+        if owns_client:
+            current_client.close()
+    response_payload = _safe_json(response)
+    request_id = response.headers.get("x-request-id")
+    if response.is_error:
+        raise PipefacilDealUpdateError(
+            "Pipefacil deal update returned an error response.",
+            error_code="pipefacil_upstream_error",
+            status_code=response.status_code,
+            request_id=request_id,
+            response_body=response_payload,
+        )
+    return PipefacilDealUpdateResult(
+        status_code=response.status_code,
+        request_id=request_id,
+        payload=response_payload,
+    )
+
+
 def update_deal_stage(
     *,
     seq: int | None,

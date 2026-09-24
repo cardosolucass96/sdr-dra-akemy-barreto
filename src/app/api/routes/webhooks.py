@@ -2,12 +2,15 @@ from __future__ import annotations
 
 import logging
 import time
+from collections.abc import Callable
 from typing import Annotated, Any
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Response, status
 
 from app.api.dependencies import (
     get_graph,
+    get_liana_pipefacil_sync_enqueue,
+    get_liana_pipefacil_sync_handler,
     get_pipefacil_message_idempotency_store,
     get_settings,
 )
@@ -28,6 +31,9 @@ from app.core.logging import raw_log_value
 webhooks_router = APIRouter()
 GraphDep = Annotated[Any, Depends(get_graph)]
 SettingsDep = Annotated[Settings, Depends(get_settings)]
+LianaSyncHandler = Callable[[dict[str, Any]], dict[str, Any]]
+LIANA_SYNC_HANDLER_DEPENDENCY = Depends(get_liana_pipefacil_sync_handler)
+LIANA_SYNC_ENQUEUE_DEPENDENCY = Depends(get_liana_pipefacil_sync_enqueue)
 IdempotencyStoreDep = Annotated[
     MessageIdempotencyStore,
     Depends(get_pipefacil_message_idempotency_store),
@@ -47,6 +53,8 @@ def message_received(
     settings: SettingsDep,
     idempotency_store: IdempotencyStoreDep,
     response: Response,
+    liana_sync_handler: LianaSyncHandler | None = LIANA_SYNC_HANDLER_DEPENDENCY,
+    liana_sync_enqueue: LianaSyncHandler | None = LIANA_SYNC_ENQUEUE_DEPENDENCY,
 ) -> ChatResponse:
     received_extra = {
         **build_pipefacil_message_received_log_context(payload),
@@ -84,6 +92,8 @@ def message_received(
         graph=graph,
         settings=settings,
         idempotency_store=idempotency_store,
+        liana_sync_handler=(liana_sync_handler if callable(liana_sync_handler) else None),
+        liana_sync_enqueue=(liana_sync_enqueue if callable(liana_sync_enqueue) else None),
     )
     response.status_code = status.HTTP_200_OK
     LOGGER.info(
@@ -111,14 +121,25 @@ def _process_pipefacil_message_received(
     graph: Any,
     settings: Settings,
     idempotency_store: MessageIdempotencyStore,
+    liana_sync_handler: LianaSyncHandler | None = None,
+    liana_sync_enqueue: LianaSyncHandler | None = None,
 ) -> None:
     start = time.perf_counter()
     try:
+        handler_args = {
+            name: callback
+            for name, callback in (
+                ("pipefacil_sync_handler", liana_sync_handler),
+                ("pipefacil_sync_enqueue", liana_sync_enqueue),
+            )
+            if callback is not None
+        }
         result = handle_pipefacil_message_received(
             payload,
             graph=graph,
             settings=settings,
             idempotency_store=idempotency_store,
+            **handler_args,
         )
     except Exception as exc:
         LOGGER.exception(

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from typing import Any
 
 from langchain_core.messages import BaseMessage, HumanMessage
@@ -29,6 +29,10 @@ def run_chat_turn(
     metadata: dict[str, object] | None = None,
     tags: tuple[str, ...] | None = None,
     settings: Settings | None = None,
+    pipefacil_deal_seq: int | None = None,
+    pipefacil_stage_key: str | None = None,
+    pipefacil_sync_enqueue: Callable[[dict[str, Any]], dict[str, Any]] | None = None,
+    pipefacil_sync_handler: Callable[[dict[str, Any]], dict[str, Any]] | None = None,
 ) -> ChatTurnResult:
     result = run_agent(
         {"messages": [HumanMessage(content=message)]},
@@ -39,6 +43,10 @@ def run_chat_turn(
         config={"configurable": {"thread_id": thread_id}},
         graph=graph,
         settings=settings,
+        pipefacil_deal_seq=pipefacil_deal_seq,
+        pipefacil_stage_key=pipefacil_stage_key,
+        pipefacil_sync_enqueue=pipefacil_sync_enqueue,
+        pipefacil_sync_handler=pipefacil_sync_handler,
     )
     return _chat_turn_result(result, thread_id=thread_id)
 

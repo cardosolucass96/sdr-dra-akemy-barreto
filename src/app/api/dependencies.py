@@ -26,3 +26,11 @@ def get_runtime_settings_service(request: Request) -> RuntimeSettingsService:
 
 def get_pipefacil_message_idempotency_store(request: Request) -> MessageIdempotencyStore:
     return request.app.state.pipefacil_message_idempotency_store
+
+
+def get_liana_pipefacil_sync_handler(request: Request):
+    return getattr(request.app.state, "liana_pipefacil_sync_handler", None)
+
+
+def get_liana_pipefacil_sync_enqueue(request: Request):
+    return getattr(request.app.state, "liana_pipefacil_sync_enqueue", None)

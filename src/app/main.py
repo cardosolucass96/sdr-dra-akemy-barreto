@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 from collections.abc import Mapping, Sequence
@@ -26,6 +27,7 @@ from app.application.idempotency import (
     InMemoryMessageIdempotencyStore,
     MessageIdempotencyStore,
 )
+from app.application.liana_pipefacil_sync import LianaPipefacilSyncService
 from app.application.runtime_settings import InMemoryRuntimeSettingsStore, RuntimeSettingsService
 from app.core import (
     RuntimeConfigurationError,
@@ -34,6 +36,9 @@ from app.core import (
     build_execution_settings,
     configure_logging,
     get_bootstrap_settings,
+)
+from app.integrations.pipefacil.outbox import (
+    PostgresPipefacilSyncOutboxStore,
 )
 from app.integrations.postgres_idempotency import PostgresMessageIdempotencyStore
 from app.integrations.postgres_runtime_settings import PostgresRuntimeSettingsStore
@@ -132,6 +137,39 @@ def _build_pipefacil_message_idempotency_store(
     )
     store.setup()
     return store
+
+
+def _build_liana_pipefacil_sync_service(
+    runtime: AgentGraphRuntime,
+    *,
+    settings_provider,
+) -> LianaPipefacilSyncService | None:
+    if runtime.database_pool is None:
+        return None
+    store = PostgresPipefacilSyncOutboxStore(
+        runtime.database_pool,
+        schema=runtime.database_schema,
+    )
+    store.setup()
+    return LianaPipefacilSyncService(store, settings_provider=settings_provider)
+
+
+async def _retry_liana_pipefacil_sync_outbox(
+    service: LianaPipefacilSyncService,
+    stop_event: asyncio.Event,
+) -> None:
+    while not stop_event.is_set():
+        try:
+            worked = await asyncio.to_thread(service.process_next)
+        except Exception:
+            LOGGER.exception("pipefacil.liana_sync.retry_worker_failed")
+            worked = False
+        if worked:
+            continue
+        try:
+            await asyncio.wait_for(stop_event.wait(), timeout=5)
+        except TimeoutError:
+            pass
 
 
 def _build_runtime_settings_service(
@@ -303,6 +341,10 @@ def create_app(*, app_env: str | None = None) -> FastAPI:
             settings = runtime_settings_service.get_execution_settings()
             _validate_generated_audio_settings(settings)
             warm_up_langfuse(settings)
+            liana_pipefacil_sync_service = _build_liana_pipefacil_sync_service(
+                runtime,
+                settings_provider=runtime_settings_service.get_execution_settings,
+            )
         except Exception:
             runtime.close()
             raise
@@ -310,6 +352,25 @@ def create_app(*, app_env: str | None = None) -> FastAPI:
         app.state.graph = runtime.graph
         app.state.checkpointer = runtime.checkpointer
         app.state.pipefacil_message_idempotency_store = idempotency_store
+        app.state.liana_pipefacil_sync_service = liana_pipefacil_sync_service
+        app.state.liana_pipefacil_sync_handler = (
+            liana_pipefacil_sync_service.process_operation
+            if liana_pipefacil_sync_service is not None
+            else None
+        )
+        app.state.liana_pipefacil_sync_enqueue = (
+            liana_pipefacil_sync_service.enqueue_request
+            if liana_pipefacil_sync_service is not None
+            else None
+        )
+        if liana_pipefacil_sync_service is None:
+            LOGGER.warning(
+                "pipefacil.liana_sync.disabled_without_database",
+                extra={
+                    "pipeline_step": "pipefacil.liana_sync.disabled_without_database",
+                    "pipefacil_sync_outbox_durable": False,
+                },
+            )
         app.state.bootstrap_settings = bootstrap
         app.state.runtime_settings_service = runtime_settings_service
         app.state.settings = settings
@@ -337,9 +398,18 @@ def create_app(*, app_env: str | None = None) -> FastAPI:
             },
         )
 
+        retry_stop_event = asyncio.Event()
+        retry_task = None
+        if liana_pipefacil_sync_service is not None:
+            retry_task = asyncio.create_task(
+                _retry_liana_pipefacil_sync_outbox(liana_pipefacil_sync_service, retry_stop_event)
+            )
         try:
             yield
         finally:
+            if retry_task is not None:
+                retry_stop_event.set()
+                await retry_task
             runtime.close()
             flush_langfuse(runtime_settings_service.get_execution_settings())
             LOGGER.info("Application shutdown completed.")

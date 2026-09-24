@@ -15,6 +15,22 @@ class IntentClassification(BaseModel):
     specialist_reason: str | None = None
 
 
+class LianaLeadProgress(BaseModel):
+    explicit_interest: bool
+    stated_objective: str | None
+    appointment_requested: bool
+    preferred_period: str | None
+    confidence: float = Field(ge=0, le=1)
+
+
+class OpenAILianaLeadProgress(BaseModel):
+    explicit_interest: bool
+    stated_objective: str | None
+    appointment_requested: bool
+    preferred_period: str | None
+    confidence: float
+
+
 class OutboundMediaChoice(BaseModel):
     media_id: str = Field(min_length=1)
     caption: str | None = None
