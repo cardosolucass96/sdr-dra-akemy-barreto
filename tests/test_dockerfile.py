@@ -27,3 +27,9 @@ def test_production_image_keeps_readiness_healthcheck() -> None:
 
     assert "HEALTHCHECK" in dockerfile
     assert "http://127.0.0.1:8000/ready" in dockerfile
+
+
+def test_production_image_includes_the_sdr_profile_and_knowledge_base() -> None:
+    dockerfile = Path("Dockerfile").read_text()
+
+    assert "COPY clara-instituto-saudavelmente-configuracao-sdr.json ./" in dockerfile

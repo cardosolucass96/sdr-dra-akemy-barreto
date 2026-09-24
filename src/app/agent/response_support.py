@@ -21,6 +21,7 @@ from app.agent.chains.schemas import (
 )
 from app.agent.messages import latest_user_message, message_to_text, serialize_messages
 from app.agent.prompts import get_whatsapp_style_prompt_text
+from app.agent.saudavelmente_profile import build_saudavelmente_agent_context
 from app.outbound_media import (
     OUTBOUND_MEDIA_CATALOG_UNAVAILABLE_TEXT,
     build_outbound_media_prompt_view,
@@ -252,7 +253,10 @@ def build_response_update(
             else "No specialist result.",
             "resume_context": str(agent_state.get("resume_context") or "").strip()
             or "No additional resume context.",
-            "response_style": response_style,
+            "response_style": (
+                f"{build_saudavelmente_agent_context()}\n\n"
+                f"Guia de estilo WhatsApp:\n{response_style}"
+            ),
             "available_media": available_media,
         },
         config=config,

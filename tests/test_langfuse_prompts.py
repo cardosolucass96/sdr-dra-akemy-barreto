@@ -186,6 +186,7 @@ def test_responder_prompt_defines_hybrid_text_and_audio_policy() -> None:
     assert "use a hybrid reply" in system_prompt
     assert "never choose audio only because the reply is long" in system_prompt
     assert "Do not repeat the same content in both formats" in system_prompt
+    assert "verified assistant identity, clinic knowledge, safety limits" in system_prompt
 
 
 def test_responder_prompt_defines_consultative_conversation_contract() -> None:

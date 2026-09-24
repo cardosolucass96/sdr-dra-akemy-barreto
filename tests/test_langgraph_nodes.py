@@ -153,7 +153,12 @@ def test_respond_appends_ai_message(monkeypatch) -> None:
             assert payload["conversation_history"] == [input_message]
             assert payload["specialist_result"] is None
             assert payload["specialist_context"] == "No specialist result."
-            assert payload["response_style"] == "Use WhatsApp style."
+            assert (
+                "Identidade, limites e base de conhecimento da Liana" in payload["response_style"]
+            )
+            assert "O investimento informado é R$ 1.250" in payload["response_style"]
+            assert "Informe o valor quando a pessoa perguntar" in payload["response_style"]
+            assert "Guia de estilo WhatsApp:\nUse WhatsApp style." in payload["response_style"]
             assert config == expected_config
             return output_message
 

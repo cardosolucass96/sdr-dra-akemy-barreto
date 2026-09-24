@@ -8,6 +8,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 COPY pyproject.toml README.md ./
+COPY clara-instituto-saudavelmente-configuracao-sdr.json ./
 COPY src ./src
 
 RUN apt-get update \
