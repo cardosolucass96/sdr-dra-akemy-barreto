@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Configurações do SDR</title>
+    <link rel="stylesheet" href="/settings/static/settings.css">
+  </head>
+  <body>
+    <header class="settings-header">
+      <div>
+        <p class="eyebrow">SDR</p>
+        <h1>Configurações</h1>
+        <p>Alterações salvas valem para a próxima mensagem.</p>
+      </div>
+      <form action="/settings/logout" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button class="secondary" type="submit">Sair</button>
+      </form>
+    </header>
+    <main class="settings-content">
+      {% if notice %}<p class="notice success">{{ notice }}</p>{% endif %}
+      {% if error %}<p class="notice error">{{ error }}</p>{% endif %}
+      <form action="/settings" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <input type="hidden" name="version" value="{{ version }}">
+        {% for section in sections %}
+        <details class="settings-section" open>
+          <summary>{{ section.title }}</summary>
+          <div class="settings-grid">
+          {% for field in section.fields %}
+            <label class="field {{ 'field-wide' if field.wide else '' }}" for="{{ field.name }}">
+              <span>{{ field.label }}</span>
+              {% if field.kind == 'boolean' %}
+                <input id="{{ field.name }}" name="{{ field.name }}" type="checkbox" value="true" {% if field.value %}checked{% endif %}>
+              {% elif field.kind == 'select' %}
+                <select id="{{ field.name }}" name="{{ field.name }}">
+                  {% for option in field.options %}
+                    <option value="{{ option }}" {% if field.value == option %}selected{% endif %}>{{ option }}</option>
+                  {% endfor %}
+                </select>
+              {% elif field.kind == 'textarea' %}
+                <textarea id="{{ field.name }}" name="{{ field.name }}" rows="3">{{ field.value or '' }}</textarea>
+              {% else %}
+                <input id="{{ field.name }}" name="{{ field.name }}" type="{{ field.kind }}" value="{{ field.value if field.value is not none else '' }}" {% if field.step %}step="{{ field.step }}"{% endif %}>
+              {% endif %}
+              {% if field.help %}<small>{{ field.help }}</small>{% endif %}
+            </label>
+          {% endfor %}
+          </div>
+        </details>
+        {% endfor %}
+        <div class="save-row"><button type="submit">Salvar alterações</button></div>
+      </form>
+    </main>
+  </body>
+</html>

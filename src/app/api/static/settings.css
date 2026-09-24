@@ -1,0 +1,17 @@
+:root { color-scheme: light; font-family: Inter, ui-sans-serif, system-ui, sans-serif; color: #182230; background: #f7f8fa; }
+* { box-sizing: border-box; }
+body { margin: 0; }
+.settings-header, .settings-content { max-width: 980px; margin: 0 auto; padding: 28px 20px; }
+.settings-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
+h1 { margin: 2px 0 8px; font-size: 1.7rem; } p { color: #526070; margin: 0; }
+.eyebrow { color: #5e4cc4; font-size: .75rem; font-weight: 800; letter-spacing: .12em; }
+.settings-section, .login-card { margin: 14px 0; background: #fff; border: 1px solid #e1e5ea; border-radius: 12px; box-shadow: 0 2px 5px #18223008; }
+.settings-section summary { cursor: pointer; padding: 16px 18px; font-weight: 700; }
+.settings-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; padding: 4px 18px 20px; }
+.field { display: grid; gap: 6px; color: #273548; font-size: .88rem; font-weight: 600; }.field-wide { grid-column: 1 / -1; }
+input, select, textarea { width: 100%; border: 1px solid #cbd3dc; border-radius: 7px; padding: 9px 10px; color: #182230; background: #fff; font: inherit; font-weight: 400; }
+input[type="checkbox"] { width: 18px; height: 18px; accent-color: #5e4cc4; } small { color: #687586; font-weight: 400; }
+button { border: 0; border-radius: 7px; background: #5e4cc4; color: #fff; padding: 10px 15px; font: inherit; font-weight: 700; cursor: pointer; }.secondary { background: #e8eaf0; color: #273548; }
+.save-row { display: flex; justify-content: end; padding: 18px 0 28px; }.notice { border-radius: 8px; padding: 12px 14px; margin: 0 0 14px; }.notice.error { color: #8f2020; background: #fff0f0; }.notice.success { color: #19633d; background: #edfbf3; }
+.settings-login-page { min-height: 100vh; display: grid; place-items: center; padding: 20px; }.login-card { width: min(100%, 380px); padding: 28px; }.login-card form { display: grid; gap: 12px; margin-top: 24px; }.login-card label { font-weight: 700; font-size: .9rem; }
+@media (max-width: 680px) { .settings-grid { grid-template-columns: 1fr; }.field-wide { grid-column: auto; }.settings-header { padding-bottom: 10px; } }

@@ -1,0 +1,54 @@
+{
+  "name": "sdr-pipefacil-golden-dataset",
+  "version": 2,
+  "description": "Casos padrao ouro para avaliar contexto, comunicacao e comportamento consultivo do SDR Pipefacil.",
+  "primary_file": "examples.jsonl",
+  "schema_file": "schema.json",
+  "case_statuses": ["candidate", "approved", "deprecated"],
+  "pii_policy": {
+    "allow_real_customer_data": false,
+    "required_action": "Anonimizar e revisar antes de versionar.",
+    "placeholder_examples": [
+      "[nome_removido]",
+      "[telefone_removido]",
+      "[email_removido]",
+      "[cnpj_removido]",
+      "[trace_id_redigido]"
+    ]
+  },
+  "review_policy": {
+    "candidate": "Pode ser gerado a partir de trace ou escrito manualmente.",
+    "approved": "Revisado como comportamento esperado e seguro para regressao.",
+    "deprecated": "Mantido apenas como historico ou referencia antiga."
+  },
+  "langfuse_evaluation_standard": {
+    "score_configs": [
+      {
+        "name": "answer_correct",
+        "data_type": "BOOLEAN",
+        "required_for_review": true,
+        "description": "Pass/fail principal do caso revisado."
+      },
+      {
+        "name": "failure_note",
+        "data_type": "TEXT",
+        "required_when": "answer_correct=false",
+        "description": "Texto livre sobre o que falhou e como melhorar."
+      }
+    ],
+    "correction": {
+      "ui_field": "Corrected Output (Beta)",
+      "score_name": "output",
+      "data_type": "CORRECTION",
+      "recommended_when": "answer_correct=false",
+      "description": "Resposta ideal que o agente deveria ter produzido."
+    },
+    "optional_future_scores": [
+      {
+        "name": "failure_type",
+        "data_type": "CATEGORICAL",
+        "description": "Categoria agregavel da falha quando houver volume suficiente."
+      }
+    ]
+  }
+}

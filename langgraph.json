@@ -1,0 +1,9 @@
+{
+  "dependencies": ["."],
+  "graphs": {
+    "sdr_pipefacil": "./src/app/agent/agent.py:graph"
+  },
+  "env": "./.env",
+  "image_distro": "wolfi",
+  "python_version": "3.12"
+}

@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Acessar configurações</title>
+    <link rel="stylesheet" href="/settings/static/settings.css">
+  </head>
+  <body class="settings-login-page">
+    <main class="login-card">
+      <p class="eyebrow">SDR</p>
+      <h1>Configurações</h1>
+      <p>Informe a chave de acesso deste SDR.</p>
+      {% if error %}<p class="notice error">{{ error }}</p>{% endif %}
+      <form action="/settings/login" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <label for="access_key">Chave de acesso</label>
+        <input id="access_key" name="access_key" type="password" autocomplete="current-password" required autofocus>
+        <button type="submit">Entrar</button>
+      </form>
+    </main>
+  </body>
+</html>

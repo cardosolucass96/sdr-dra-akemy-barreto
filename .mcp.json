@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "docs-langchain": {
+      "url": "https://docs.langchain.com/mcp"
+    },
+    "langfuse-docs": {
+      "url": "https://langfuse.com/api/mcp"
+    }
+  }
+}

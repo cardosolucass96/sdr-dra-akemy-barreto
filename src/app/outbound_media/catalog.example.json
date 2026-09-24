@@ -1,0 +1,37 @@
+{
+  "media": [
+    {
+      "id": "imagem_beneficios",
+      "type": "image",
+      "title": "Imagem de beneficios",
+      "description": "Imagem visual com os principais beneficios do produto.",
+      "when_to_use": "Quando o lead pedir beneficios, vantagens ou um resumo visual.",
+      "media_url": "https://cdn.example.com/path/imagem-beneficios.jpg",
+      "content_type": "image/jpeg",
+      "filename": "imagem-beneficios.jpg",
+      "enabled": false
+    },
+    {
+      "id": "audio_apresentacao",
+      "type": "audio",
+      "title": "Audio de apresentacao",
+      "description": "Audio curto de apresentacao do produto ou servico.",
+      "when_to_use": "Quando o lead pedir uma apresentacao por audio ou quando uma explicacao em voz ajudar.",
+      "media_url": "https://cdn.example.com/path/apresentacao.ogg",
+      "content_type": "audio/ogg",
+      "filename": "apresentacao.ogg",
+      "enabled": false
+    },
+    {
+      "id": "documento_catalogo",
+      "type": "document",
+      "title": "Catalogo comercial",
+      "description": "Documento PDF com informacoes comerciais do produto.",
+      "when_to_use": "Quando o lead pedir catalogo, proposta, material completo ou documento para consultar depois.",
+      "media_url": "https://cdn.example.com/path/catalogo.pdf",
+      "content_type": "application/pdf",
+      "filename": "catalogo.pdf",
+      "enabled": false
+    }
+  ]
+}
