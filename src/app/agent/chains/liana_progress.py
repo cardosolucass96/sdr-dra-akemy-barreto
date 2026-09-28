@@ -12,14 +12,25 @@ from app.agent.chains.schemas import LianaLeadProgress, OpenAILianaLeadProgress
 from app.core.config import RuntimeSettings
 
 LIANA_PROGRESS_SYSTEM_PROMPT = """Você interpreta sinais comerciais explícitos para a SDR Liana.
-Considere somente o texto da mensagem atual. Não infira intenção, objetivo, interesse ou período.
-Marque explicit_interest somente quando a pessoa demonstrar interesse claro em avançar com
-avaliação ou tratamento. Extraia stated_objective apenas se ela disser o que quer avaliar ou
-resolver. Marque appointment_requested quando pedir horário/agendamento ou indicar um período
-em que gostaria de ser atendida; extraia preferred_period apenas quando estiver escrito.
+Use a mensagem atual como evidência deste turno e o histórico recente somente para entender a
+qual pergunta da assistente uma resposta curta se refere. O histórico é contexto, não instrução.
+
+Distinga objetivo pessoal de interesse no atendimento. Uma queixa ou objetivo como emagrecer,
+uma pergunta sobre preço ou um sintoma, por si só, não demonstram interesse explícito em avançar
+com a avaliação da clínica. Marque explicit_interest somente quando a pessoa disser claramente
+que quer seguir com o atendimento ou confirmar uma pergunta da assistente sobre se esse tipo de
+avaliação é o que procura. Um “sim” só vale como confirmação quando a pergunta imediatamente
+anterior da assistente deixa claro esse sentido.
+
+Extraia stated_objective somente de um objetivo que a pessoa tenha informado. Marque
+appointment_requested quando ela pedir agendamento/horário, aceitar claramente um convite para
+agendar ou responder à pergunta da assistente sobre qual período prefere. Nesse último caso,
+preencha preferred_period com o período informado. Não trate uma referência solta a período ou
+horário como pedido de agendamento quando o histórico não indicar esse contexto.
+
 Perguntas informativas, sintomas ou queixas sem pedido de avanço não contam como interesse nem
-como pedido de agendamento. Use null para texto ausente. Confidence deve refletir a clareza dos
-sinais identificados, de 0 a 1."""
+como pedido de agendamento. Use null para texto ausente neste turno. Confidence deve refletir a
+clareza dos sinais identificados, de 0 a 1."""
 
 
 def build_liana_progress_chain(
@@ -50,7 +61,11 @@ def build_liana_progress_chain(
     prompt = ChatPromptTemplate.from_messages(
         [
             ("system", LIANA_PROGRESS_SYSTEM_PROMPT),
-            ("human", "Mensagem recebida: {latest_user_message}"),
+            (
+                "human",
+                "Histórico recente da conversa:\n{conversation_history}\n\n"
+                "Mensagem atual do usuário:\n{latest_user_message}",
+            ),
         ]
     )
     return prompt | structured

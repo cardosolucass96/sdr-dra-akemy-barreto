@@ -24,12 +24,20 @@ def _build_chain(*, use_custom_temperature: bool = True):
     )
 
 
-def _interpret_message(message: str, config: RunnableConfig, settings: Any):
+def _interpret_message(
+    message: str,
+    history_text: str,
+    config: RunnableConfig,
+    settings: Any,
+):
     token = _RUNTIME_SETTINGS.set(settings)
     try:
         return invoke_with_temperature_fallback(
             _build_chain,
-            {"latest_user_message": message},
+            {
+                "latest_user_message": message,
+                "conversation_history": history_text,
+            },
             config=config,
         )
     finally:
@@ -45,7 +53,12 @@ def interpret_liana_progress(
     return build_liana_progress_state_update(
         state,
         context,
-        lambda message: _interpret_message(message, config, context.settings),
+        lambda message, history_text: _interpret_message(
+            message,
+            history_text,
+            config,
+            context.settings,
+        ),
     )
 
 

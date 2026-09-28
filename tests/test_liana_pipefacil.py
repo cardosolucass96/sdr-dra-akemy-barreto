@@ -85,7 +85,7 @@ def test_liana_keeps_interest_from_an_earlier_message() -> None:
         "liana_explicit_interest": True,
     }
 
-    update = build_liana_progress_state_update(state, context, lambda message: result)
+    update = build_liana_progress_state_update(state, context, lambda message, history: result)
     sync_request = build_liana_sync_request(state | update)
 
     assert sync_request is not None
@@ -114,18 +114,20 @@ def test_liana_appointment_request_advances_and_never_targets_terminal_stages() 
 def test_interpret_liana_progress_uses_validated_signals_and_persists_facts(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    captured: dict[str, Any] = {}
     result = LianaLeadProgress(
         explicit_interest=True,
         stated_objective="avaliar emagrecimento",
-        appointment_requested=True,
-        preferred_period="na próxima semana",
+        appointment_requested=False,
+        preferred_period=None,
         confidence=0.94,
     )
-    monkeypatch.setattr(
-        liana_nodes,
-        "invoke_with_temperature_fallback",
-        lambda *args, **kwargs: result,
-    )
+
+    def fake_invoke(_chain_factory, payload, **_kwargs):
+        captured.update(payload)
+        return result
+
+    monkeypatch.setattr(liana_nodes, "invoke_with_temperature_fallback", fake_invoke)
     context = AgentRunContext(
         settings=RuntimeSettings(),
         pipefacil_deal_seq=23,
@@ -136,8 +138,12 @@ def test_interpret_liana_progress_uses_validated_signals_and_persists_facts(
 
     update = liana_nodes.interpret_liana_progress(
         {
-            "messages": [HumanMessage(content="Quero marcar para a próxima semana.")],
-            "latest_user_message": "Quero marcar para a próxima semana.",
+            "messages": [
+                HumanMessage(content="Minha queixa principal é emagrecimento."),
+                AIMessage(content="Esse é o tipo de atendimento que você procura?"),
+                HumanMessage(content="Sim, é isso mesmo."),
+            ],
+            "latest_user_message": "Sim, é isso mesmo.",
         },
         runtime=SimpleNamespace(context=context),
     )
@@ -145,8 +151,13 @@ def test_interpret_liana_progress_uses_validated_signals_and_persists_facts(
     assert update["pipefacil_sync_active"] is True
     assert update["liana_explicit_interest"] is True
     assert update["liana_stated_objective"] == "avaliar emagrecimento"
-    assert update["liana_appointment_requested"] is True
-    assert update["liana_preferred_period"] == "na próxima semana"
+    assert update["liana_appointment_requested"] is False
+    assert update["liana_preferred_period"] is None
+    assert captured["latest_user_message"] == "Sim, é isso mesmo."
+    assert captured["conversation_history"] == (
+        "user: Minha queixa principal é emagrecimento.\n"
+        "assistant: Esse é o tipo de atendimento que você procura?"
+    )
 
 
 def test_interpret_liana_progress_ignores_low_confidence_signal(
@@ -252,7 +263,12 @@ def test_liana_progress_chain_uses_structured_output(
     monkeypatch.setattr(liana_chain, "get_chat_model", lambda **kwargs: FakeModel())
     monkeypatch.setattr(liana_chain, "structured_output_method", lambda *args: method)
     chain = liana_chain.build_liana_progress_chain(RuntimeSettings())
-    result = chain.invoke({"latest_user_message": "Quero cuidar do meu peso."})
+    result = chain.invoke(
+        {
+            "latest_user_message": "Quero cuidar do meu peso.",
+            "conversation_history": "(sem mensagens anteriores)",
+        }
+    )
 
     assert isinstance(result, LianaLeadProgress)
     assert captured["method"] == method

@@ -4,10 +4,22 @@ from collections.abc import Callable
 from typing import Any
 
 from app.agent.context import AgentRunContext
+from app.agent.messages import message_content, message_role, serialize_messages
 from app.agent.state import AgentState
 
 QUALIFIED_STAGE_KEYS = frozenset({"qualification", "appointment"})
 AUTOMATABLE_STAGE_KEYS = frozenset({"entry", *QUALIFIED_STAGE_KEYS})
+
+
+def _history_before_current_message(state: AgentState, message: str) -> list[Any]:
+    history = list(state.get("messages", []))
+    if (
+        history
+        and message_role(history[-1]) == "user"
+        and message_content(history[-1]).strip() == message.strip()
+    ):
+        history.pop()
+    return history[-6:]
 
 
 def build_liana_sync_request(state: AgentState) -> dict[str, Any] | None:
@@ -39,7 +51,7 @@ def build_liana_sync_request(state: AgentState) -> dict[str, Any] | None:
 def build_liana_progress_state_update(
     state: AgentState,
     context: AgentRunContext,
-    interpret: Callable[[str], Any],
+    interpret: Callable[[str, str], Any],
 ) -> dict[str, Any]:
     stage_key = context.pipefacil_stage_key
     active = bool(
@@ -56,7 +68,13 @@ def build_liana_progress_state_update(
     message = state.get("latest_user_message")
     if not active or not message:
         return update
-    return update | _merge_liana_progress_result(state, interpret(message))
+
+    serialized_history = serialize_messages(_history_before_current_message(state, message))
+    history_text = (
+        "\n".join(f"{item['role']}: {item['content']}" for item in serialized_history)
+        or "(sem mensagens anteriores)"
+    )
+    return update | _merge_liana_progress_result(state, interpret(message, history_text))
 
 
 def _merge_liana_progress_result(state: AgentState, result: Any) -> dict[str, Any]:
