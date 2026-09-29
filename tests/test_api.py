@@ -21,6 +21,7 @@ import app.application.conversations as conversation_application
 import app.application.pipefacil as pipefacil_application
 import app.main as main_app
 from app.agent.chains.schemas import IntentClassification
+from app.agent.saudavelmente_profile import LIANA_INITIAL_GREETING
 from app.api.schemas import MessageReceivedEventRequest
 from app.application.dto import (
     ChatTurnResult,
@@ -154,9 +155,7 @@ def test_chat_endpoint_returns_response(monkeypatch: pytest.MonkeyPatch) -> None
 
     class FakeResponderChain:
         def invoke(self, payload, config=None):
-            assert payload["intent"] == "greeting"
-            assert config["configurable"]["thread_id"] == "thread-1"
-            return AIMessage(content="Oi! Como posso ajudar?")
+            raise AssertionError("The exact initial greeting must not call the responder model.")
 
     monkeypatch.setattr(intent_nodes, "_build_classifier_chain", lambda: FakeClassifierChain())
     monkeypatch.setattr(response_nodes, "_build_responder_chain", lambda: FakeResponderChain())
@@ -165,21 +164,23 @@ def test_chat_endpoint_returns_response(monkeypatch: pytest.MonkeyPatch) -> None
         response = client.post("/chat", json={"thread_id": "thread-1", "message": "oi"})
 
     assert response.status_code == 200
+    greeting_messages = LIANA_INITIAL_GREETING.split("\n\n")
     assert response.json() == {
         "thread_id": "thread-1",
         "intent": "greeting",
         "intent_reason": "Saudacao.",
-        "response_text": "Oi! Como posso ajudar?",
-        "response_messages": ["Oi! Como posso ajudar?"],
+        "response_text": LIANA_INITIAL_GREETING,
+        "response_messages": greeting_messages,
         "response_parts": [
             {
                 "type": "text",
-                "text": "Oi! Como posso ajudar?",
+                "text": message,
                 "media_id": None,
                 "caption": None,
                 "content_type": None,
                 "filename": None,
             }
+            for message in greeting_messages
         ],
         "status": "responded",
         "delivery_status": None,
