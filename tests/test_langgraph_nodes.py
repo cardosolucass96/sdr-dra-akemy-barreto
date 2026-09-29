@@ -148,18 +148,20 @@ def test_respond_appends_ai_message(monkeypatch) -> None:
 
     class FakeResponderChain:
         def invoke(self, payload, config=None):
+            response_style = payload["response_style"]
             assert payload["intent"] == "request"
             assert payload["latest_user_message"] == "Me ajuda com isso."
             assert payload["conversation_history"] == [input_message]
             assert payload["specialist_result"] is None
             assert payload["specialist_context"] == "No specialist result."
-            assert (
-                "Identidade, limites e base de conhecimento da Liana" in payload["response_style"]
-            )
-            assert "O investimento informado é R$ 1.250" in payload["response_style"]
-            assert "Informe o valor quando a pessoa perguntar" in payload["response_style"]
-            assert "separe-as em mensagens distintas" in payload["response_style"]
-            assert "Guia de estilo WhatsApp:\nUse WhatsApp style." in payload["response_style"]
+            assert "Identidade, limites e base de conhecimento da Liana" in response_style
+            assert "O investimento informado é R$ 980" in response_style
+            assert "Informe o valor quando a pessoa perguntar" in response_style
+            assert "Não pergunte data, horário ou preferência de período" in response_style
+            assert "faça o handoff" in response_style
+            assert "mensagem D0 da sequência pré-consulta" in response_style
+            assert "separe-as em mensagens distintas" in response_style
+            assert "Guia de estilo WhatsApp:\nUse WhatsApp style." in response_style
             assert config == expected_config
             return output_message
 

@@ -24,8 +24,11 @@ anterior da assistente deixa claro esse sentido.
 
 Extraia stated_objective somente de um objetivo que a pessoa tenha informado. Marque
 appointment_requested quando ela pedir agendamento/horário, aceitar claramente um convite para
-agendar ou responder à pergunta da assistente sobre qual período prefere. Nesse último caso,
-preencha preferred_period com o período informado. Não trate uma referência solta a período ou
+agendar ou aceitar a transferência para uma atendente depois que a assistente oferecer verificar
+a agenda ou dar continuidade ao agendamento. Um “sim” só conta como aceite de transferência
+quando a mensagem imediatamente anterior da assistente deixa esse próximo passo explícito.
+Preencha preferred_period apenas quando a própria pessoa informar espontaneamente um período;
+não presuma que a assistente precisa perguntar isso. Não trate uma referência solta a período ou
 horário como pedido de agendamento quando o histórico não indicar esse contexto.
 
 Perguntas informativas, sintomas ou queixas sem pedido de avanço não contam como interesse nem
