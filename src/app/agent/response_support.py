@@ -21,7 +21,10 @@ from app.agent.chains.schemas import (
 )
 from app.agent.messages import latest_user_message, message_to_text, serialize_messages
 from app.agent.prompts import get_whatsapp_style_prompt_text
-from app.agent.saudavelmente_profile import build_saudavelmente_agent_context
+from app.agent.saudavelmente_profile import (
+    LIANA_INITIAL_GREETING,
+    build_saudavelmente_agent_context,
+)
 from app.outbound_media import (
     OUTBOUND_MEDIA_CATALOG_UNAVAILABLE_TEXT,
     build_outbound_media_prompt_view,
@@ -314,6 +317,7 @@ def build_response_update(
 
 
 __all__ = [
+    "LIANA_INITIAL_GREETING",
     "build_outbound_media_prompt_view",
     "build_responder_chain",
     "build_response_update",

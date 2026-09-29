@@ -11,13 +11,13 @@ from langgraph.runtime import Runtime
 from app.agent.chains import build_outbound_media_classifier_chain
 from app.agent.context import AgentRunContext, default_agent_run_context
 from app.agent.response_support import (
+    LIANA_INITIAL_GREETING,
     build_outbound_media_prompt_view,
     build_responder_chain,
     build_response_update,
     get_enabled_outbound_media_by_id,
     get_whatsapp_style_prompt_text,
 )
-from app.agent.saudavelmente_profile import LIANA_INITIAL_GREETING
 from app.agent.state import AgentState
 
 LOGGER = logging.getLogger(__name__)
