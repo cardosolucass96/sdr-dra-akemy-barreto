@@ -9,6 +9,7 @@ import app.agent.nodes.intent as intent_nodes
 import app.agent.nodes.response as response_nodes
 from app.agent import run_agent
 from app.agent.chains.schemas import IntentClassification
+from app.agent.saudavelmente_profile import LIANA_INITIAL_GREETING
 from app.core.config import get_settings
 from app.observability import reset_langfuse_clients
 from app.outbound_media import OUTBOUND_MEDIA_CATALOG_UNAVAILABLE_TEXT
@@ -153,6 +154,6 @@ def test_run_agent_supports_protocol_dict_messages(monkeypatch: pytest.MonkeyPat
 
     assert result["status"] == "responded"
     assert result["intent"] == "greeting"
-    assert result["response_text"] == "Resposta compatível com protocolo."
+    assert result["response_text"] == LIANA_INITIAL_GREETING
     reset_langfuse_clients()
     get_settings.cache_clear()

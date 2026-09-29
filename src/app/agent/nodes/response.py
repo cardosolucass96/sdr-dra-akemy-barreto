@@ -4,6 +4,7 @@ import logging
 from contextvars import ContextVar
 from typing import Any
 
+from langchain_core.messages import AIMessage
 from langchain_core.runnables import RunnableConfig
 from langgraph.runtime import Runtime
 
@@ -16,6 +17,7 @@ from app.agent.response_support import (
     get_enabled_outbound_media_by_id,
     get_whatsapp_style_prompt_text,
 )
+from app.agent.saudavelmente_profile import LIANA_INITIAL_GREETING
 from app.agent.state import AgentState
 
 LOGGER = logging.getLogger(__name__)
@@ -47,11 +49,30 @@ def _get_available_media_prompt_view() -> str:
     return build_outbound_media_prompt_view()
 
 
+def _initial_greeting_response(state: AgentState) -> dict[str, Any] | None:
+    messages = list(state.get("messages", []))
+    if state.get("intent") != "greeting" or len(messages) != 1:
+        return None
+
+    return {
+        "latest_user_message": state.get("latest_user_message", ""),
+        "response_text": LIANA_INITIAL_GREETING,
+        "response_media": [],
+        "response_audio": None,
+        "messages": [AIMessage(content=LIANA_INITIAL_GREETING)],
+        "status": "responded",
+    }
+
+
 def respond(
     state: AgentState,
     config: RunnableConfig = None,
     runtime: Runtime[AgentRunContext] = None,
 ) -> dict[str, Any]:
+    initial_greeting = _initial_greeting_response(state)
+    if initial_greeting is not None:
+        return initial_greeting
+
     context = runtime.context if runtime and runtime.context else default_agent_run_context()
     token = _RUNTIME_SETTINGS.set(context.settings)
     try:

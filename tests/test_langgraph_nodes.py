@@ -26,6 +26,7 @@ from app.agent.chains.schemas import (
 )
 from app.agent.context import AgentRunContext
 from app.agent.messages import has_sensitive_multimodal_content, message_to_text, serialize_messages
+from app.agent.saudavelmente_profile import LIANA_INITIAL_GREETING
 from app.agent.specialists import SpecialistResult
 from app.core.config import RuntimeSettings, get_settings
 from app.outbound_media import OUTBOUND_MEDIA_CATALOG_UNAVAILABLE_TEXT, OutboundMediaAsset
@@ -216,14 +217,12 @@ def test_respond_passes_specialist_result_to_chain(monkeypatch) -> None:
     assert result["response_text"] == "Resposta baseada no especialista."
 
 
-def test_respond_accepts_structured_response_without_media(monkeypatch) -> None:
+def test_respond_uses_exact_opening_for_first_greeting(monkeypatch) -> None:
     input_message = HumanMessage(content="Oi")
 
     class FakeResponderChain:
         def invoke(self, payload, config=None):
-            assert payload["available_media"] == OUTBOUND_MEDIA_CATALOG_UNAVAILABLE_TEXT
-            assert payload["conversation_history"] == [input_message]
-            return AgentResponsePlan(response_text="Oi! Posso ajudar?", media_choices=[])
+            raise AssertionError("The exact initial greeting must not call the responder model.")
 
     monkeypatch.setattr(response_nodes, "_build_responder_chain", lambda: FakeResponderChain())
 
@@ -235,10 +234,11 @@ def test_respond_accepts_structured_response_without_media(monkeypatch) -> None:
         }
     )
 
-    assert result["response_text"] == "Oi! Posso ajudar?"
+    assert result["response_text"] == LIANA_INITIAL_GREETING
     assert result["response_media"] == []
+    assert result["response_audio"] is None
     assert isinstance(result["messages"][0], AIMessage)
-    assert result["messages"][0].content == "Oi! Posso ajudar?"
+    assert result["messages"][0].content == LIANA_INITIAL_GREETING
 
 
 def test_respond_accepts_generated_audio_plan(monkeypatch) -> None:

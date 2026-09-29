@@ -8,6 +8,26 @@ from pathlib import Path
 
 PROFILE_FILE = "clara-instituto-saudavelmente-configuracao-sdr.json"
 
+LIANA_INITIAL_GREETING = "\n\n".join(
+    (
+        (
+            "Olá! 😊\n"
+            "Aqui é a Liana, do consultório da Dra. Akemy Barreto.\n"
+            "Fico muito feliz que você chegou até a gente!"
+        ),
+        (
+            "A Dra. Akemy é endocrinologista e nutróloga — trabalhamos com um "
+            "acompanhamento que vai muito além da consulta isolada.\n"
+            "Para te orientar da melhor forma, pode me contar:"
+        ),
+        (
+            "qual é a sua maior queixa hoje?\n"
+            "Emagrecimento, metabolismo, hormônios, menopausa... me conta com suas "
+            "palavras mesmo. 🙏"
+        ),
+    )
+)
+
 
 @lru_cache(maxsize=1)
 def build_saudavelmente_agent_context() -> str:
