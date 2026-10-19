@@ -9,31 +9,31 @@ description = "Template para agentes SDR integrados ao CRM Pipefacil."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "fastapi==0.141.1",
+    "fastapi==0.143.2",
     "httpx==0.28.1",
     "jinja2==3.1.6",
     "itsdangerous==2.2.0",
     "langfuse==4.14.1",
-    "langchain==1.3.14",
-    "langchain-core==1.4.9",
-    "langchain-openai==1.3.5",
-    "langgraph==1.2.9",
-    "langgraph-checkpoint-postgres==3.1.2",
+    "langchain==1.4.6",
+    "langchain-core==1.6.11",
+    "langchain-openai==1.7.2",
+    "langgraph==1.2.15",
+    "langgraph-checkpoint-postgres==3.2.0",
     "openai==2.54.0",
-    "openai-agents==0.20.0",
-    "pydantic-settings==2.15.0",
-    "python-multipart==0.0.31",
-    "psycopg[binary,pool]==3.3.4",
-    "uvicorn[standard]==0.52.4",
+    "openai-agents==0.24.0",
+    "pydantic-settings==2.16.0",
+    "python-multipart==0.0.32",
+    "psycopg[binary,pool]==3.3.6",
+    "uvicorn[standard]==0.54.0",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "langgraph-cli[inmem]==0.4.31",
-    "pre-commit==4.6.2",
+    "langgraph-cli[inmem]==0.4.35",
+    "pre-commit==4.7.0",
     "pytest==9.1.1",
     "pytest-cov==7.1.0",
-    "ruff==0.16.5",
+    "ruff==0.17.1",
 ]
 audit = [
     "pip-audit==2.10.1",
